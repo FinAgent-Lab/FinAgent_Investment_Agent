@@ -105,10 +105,10 @@ Routing to [debate] (Reason: User is asking for investment advice.)
 [Debate Arena] Topic: Should I buy Nvidia right now? (5 Rounds)
 
 --- Round 1: Opening Statement ---
-Turn: Conservative Expert (Kim)
+Turn: Conservative Expert
 Arg: Nvidia's valuation is too high (PER > 70). Regulatory risks in China are concerning...
 
-Turn: Aggressive Expert (Lee)
+Turn: Aggressive Expert
 Arg: AI demand is just starting. Nvidia has a monopoly on H100 chips...
 
 ... (Rounds 2, 3, 4...) ...
