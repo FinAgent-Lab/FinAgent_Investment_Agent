@@ -1,1 +1,14 @@
+## python
+
+.venv/
+__pycache__/
+*.pyc
+
+## Ignore environment variable files
+
 .env
+
+## Copilot
+
+.claude/
+
