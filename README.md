@@ -57,6 +57,7 @@ FinAgent_Investment_Agent/
 │   └── state.py             # Shared Agent State (Memory)
 ├── .env                     # API Keys and Config
 ├── .gitignore
+├── api.py                   # FastAPI REST API Server
 ├── main.py                  # Application Entry Point (Graph Compiler)
 └── README.md                # Project Documentation
 ```
@@ -87,13 +88,73 @@ SUPABASE_SERVICE_KEY="your-api-key"
 TAVILY_API_KEY="your-api-key"
 ```
 
-## 3. Run the main script to start the interactive CLI session.
+## 3. Usage
 
+### Option A: Interactive CLI Mode
+
+Run the main script to start the interactive CLI session.
 ```bash
 python main.py
 ```
 
-## Example
+### Option B: REST API Server
+
+Start the FastAPI server for programmatic access:
+```bash
+python api.py
+```
+
+The server will start on `http://localhost:8000`
+
+#### API Endpoints
+
+**POST /chat** - Send messages and receive AI responses
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "test_user",
+    "message": "Should I invest in Nvidia?",
+    "session_id": "optional-session-id"
+  }'
+```
+
+Response:
+```json
+{
+  "session_id": "abc123",
+  "user_id": "test_user",
+  "message": "Should I invest in Nvidia?",
+  "response": "Let me analyze Nvidia for you...",
+  "node_executed": "debate",
+  "debate_history": [...],
+  "timestamp": "2024-01-03T12:00:00"
+}
+```
+
+**GET /profile/{user_id}** - Retrieve user profile
+```bash
+curl http://localhost:8000/profile/test_user
+```
+
+**POST /profile/{user_id}** - Create/Update user profile
+```bash
+curl -X POST http://localhost:8000/profile/test_user \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name_display": "John Doe",
+    "age_range": "30대",
+    "risk_tolerance_level": "aggressive",
+    "goal_type": "long_term"
+  }'
+```
+
+**GET /health** - Health check endpoint
+```bash
+curl http://localhost:8000/health
+```
+
+## 4. Example
 Scenario: A user asks about investing in Nvidia.
 
 ```text
