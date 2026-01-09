@@ -15,8 +15,8 @@ class DebateNode:
     """
     def __init__(self):
         # recommended for Korean debate performance
-        self.llm = ChatOpenRouter(model="openai/gpt-4o", temperature=0.7)
-        self.max_rounds = 5  # extended to 5 rounds
+        self.llm = ChatOpenRouter(model="openai/gpt-4o", temperature=0.7, max_tokens=512)
+        self.max_rounds = 3  # extended to 5 rounds
 
     async def run(self, state: AgentState) -> Command:
         messages = state["messages"]
@@ -53,14 +53,23 @@ class DebateNode:
         # proceed through debate rounds (1~5)
         for round_i in range(1, self.max_rounds + 1):
             # set theme for each round
-            if round_i == 1:
-                stage_name = "Round 1: Opening Statement"
-            elif round_i in [2, 3]:
-                stage_name = f"Round {round_i}: Rebuttal"
-            elif round_i == 4:
-                stage_name = "Round 4: Deep Dive"
-            else:
-                stage_name = "Round 5: Closing Argument"
+            if self.max_rounds == 5:
+                if round_i == 1:
+                    stage_name = "Round 1: Opening Statement"
+                elif round_i in [2, 3]:
+                    stage_name = f"Round {round_i}: Rebuttal"
+                elif round_i == 4:
+                    stage_name = "Round 4: Deep Dive"
+                else:
+                    stage_name = "Round 5: Closing Argument"
+            
+            elif self.max_rounds == 3:
+                if round_i == 1:
+                    stage_name = "Round 1: Opening Statement"
+                elif round_i == 2:
+                    stage_name = f"Round 2: Rebuttal and Deep Dive"
+                else:
+                    stage_name = "Round 3: Closing Argument"
 
             print(f"\n{stage_name}")
             
@@ -76,29 +85,39 @@ class DebateNode:
                         f"당신은 '{role_kr}'입니다. 성향: {style}.\n"
                         f"주제 '{topic}'에 대한 당신의 핵심 입장을 명확히 밝히십시오.\n"
                         "도구('search_news', 'get_market_data')를 사용하여 근거 데이터를 제시하세요.\n"
-                        "반드시 **한국어**로 답변하세요."
+                        "반드시 **한국어**로 답변하세요. 대답은 최대한 간결하게 512토큰 이내로 작성하세요."
                     )
-                elif round_i in [2, 3]:
+                elif round_i in [2, 3] and self.max_rounds == 5:
                     instruction = (
                         f"당신은 '{role_kr}'입니다.\n"
                         f"앞선 토론 내용, 특히 반대 성향인 '{opponent}'의 주장을 강하게 반박하십시오.\n"
                         "상대방의 논리적 허점이나 데이터의 오류를 지적하세요.\n"
                         "필요하다면 도구를 추가로 사용하여 반박 근거를 찾으세요.\n"
-                        "반드시 **한국어**로 답변하세요."
+                        "반드시 **한국어**로 답변하세요. 대답은 최대한 간결하게 512토큰 이내로 작성하세요."
                     )
-                elif round_i == 4:
+                elif round_i == 4 and self.max_rounds == 5:
                     instruction = (
                         f"당신은 '{role_kr}'입니다.\n"
                         "토론이 막바지에 다다랐습니다. 놓치고 있는 시장의 숨겨진 리스크나 기회를 심층적으로 분석하십시오.\n"
                         "단순한 주장을 넘어, 거시 경제나 산업 트렌드와 연결하여 통찰력을 보여주세요.\n"
-                        "반드시 **한국어**로 답변하세요."
+                        "반드시 **한국어**로 답변하세요. 대답은 최대한 간결하게 512토큰 이내로 작성하세요."
+                    )
+                elif round_i == 2 and self.max_rounds == 3:
+                    instruction = (
+                        f"당신은 '{role_kr}'입니다.\n"
+                        "앞선 토론 내용, 특히 반대 성향인 '{opponent}'의 주장을 강하게 반박하십시오.\n"
+                        "상대방의 논리적 허점이나 데이터의 오류를 지적하세요.\n"
+                        "필요하다면 도구를 추가로 사용하여 반박 근거를 찾으세요.\n"
+                        "이러한 과정을 통해 놓치고 있는 시장의 숨겨진 리스크나 기회를 심층적으로 분석하십시오.\n"
+                        "단순한 주장을 넘어, 거시 경제나 산업 트렌드와 연결하여 통찰력을 보여주세요.\n"
+                        "반드시 **한국어**로 답변하세요. 대답은 최대한 간결하게 512토큰 이내로 작성하세요."
                     )
                 else: # Round 5
                     instruction = (
                         f"당신은 '{role_kr}'입니다.\n"
                         "마지막 발언 기회입니다. 투자자를 설득하기 위한 최종 결론을 내리십시오.\n"
                         "당신의 주장이 왜 옳은지 요약하고, 구체적인 행동(매수/매도/보류)을 제안하세요.\n"
-                        "반드시 **한국어**로 답변하세요."
+                        "반드시 **한국어**로 답변하세요. 대답은 최대한 간결하게 512토큰 이내로 작성하세요."
                     )
 
                 print(f"\n{role_kr}: ", end="")
@@ -143,8 +162,15 @@ class DebateNode:
         else:
             history_text = "(First statement)"
 
+        context_reminder = f"""
+        \n[IMPORTANT CONTEXT]
+        The current main topic of discussion is derived as: "{topic}".
+        When using tools like 'search_news', MUST include the specific company name (e.g., Nvidia, Samsung) in your query argument.
+        Do NOT search for generic terms like 'competitors' or 'market'.
+        """
+
         messages = [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=system_prompt + context_reminder),
             HumanMessage(content=f"Topic: {topic}\n\n{history_text}\n\nIt's your turn to argue logically.")
         ]
 
@@ -205,6 +231,7 @@ class DebateNode:
         - 먼저 토론 결론을 간략히 브리핑합니다.
         - 그 후, **"완벽한 보고서 작성을 위해 ~~에 대한 추가 조사를 진행해볼까요?"** 라고 유저에게 제안하십시오.
         - 만약 토론이 완벽하다면, 유저에게 추가로 궁금한 점이 있는지 묻거나 보고서 작성을 승인해달라고 하십시오.
+        - 답변은 최대한 간결하게 512토큰 이내로 작성하세요.
         
         **토론 기록:**
         {chr(10).join(log)}
@@ -215,35 +242,44 @@ class DebateNode:
 
     async def _resolve_topic(self, user_input: str, history: list) -> str:
         """
-        if user input is ambiguous (e.g., "Yes, do it"), restore the topic (company/ticker/topic) from the entire conversation context
+        Contextualize the user's input based on conversation history.
+        It converts ambiguous references (e.g., "What about competitors?") 
+        into a standalone topic (e.g., "Analyze recent movements of Nvidia's competitors").
         """
-        if len(user_input) > 15:
+        # 히스토리가 없으면 사용자 입력 그대로 반환
+        if not history:
             return user_input
 
+        # 최근 대화 내용 구성 (토큰 절약을 위해 최근 6개만)
         recent_history = history[-6:] 
         history_text = ""
         for msg in recent_history:
             role = "User" if isinstance(msg, HumanMessage) else "AI"
-            history_text += f"{role}: {msg.content}\n"
+            # ToolMessage 등은 제외하고 텍스트만 추출
+            if isinstance(msg, (HumanMessage, AIMessage, SystemMessage)):
+                history_text += f"{role}: {msg.content}\n"
         
+        # 문맥 재구성 프롬프트 (Contextualization Prompt)
         prompt = f"""
         **Conversation History:**
         {history_text}
         
-        **User's Last Input:** "{user_input}"
+        **User's Latest Input:** "{user_input}"
         
         **Task:**
-        The user agreed to a suggestion ("Yes", "Do it").
-        Identify the **Main Subject (Company/Ticker/Topic)** discussed in this flow.
+        Based on the conversation history, rewrite the user's latest input into a **standalone debate topic** that includes the specific entity (Company/Ticker) being discussed.
         
-        - If they were talking about 'Nvidia', the topic is 'Nvidia Stock Volatility Analysis'.
-        - If 'Samsung', then 'Samsung Electronics Analysis'.
+        - If the user says "Check competitors", and they were discussing 'Nvidia', rewrite it to "Analyze the recent movements of Nvidia's competitors".
+        - If the user switches the topic (e.g., "What about Tesla?"), use the new topic.
+        - **CRITICAL:** Do NOT answer the question. Only rewrite the topic string in Korean.
         
-        **CRITICAL:** Do NOT hallucinate a new company. Use the one explicitly mentioned in the history.
-        
-        Output ONLY the topic string in Korean.
+        **Rewritten Topic:**
         """
         
+        # LLM에게 문맥 결합 요청
         response = await self.llm.ainvoke([HumanMessage(content=prompt)])
-
-        return response.content.strip()
+        
+        new_topic = response.content.strip()
+        print(f"🔄 Contextualized Topic: {user_input} -> {new_topic}") # 디버깅용 로그
+        
+        return new_topic
