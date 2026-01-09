@@ -1,5 +1,11 @@
 # FinAgent Investment Agent
 
+<div align="center">
+  <a href="README.md">🇺🇸 English</a> | <a href="README_KR.md">🇰🇷 한국어</a>
+</div>
+
+<br>
+
 **FinAgent** is a sophisticated Multi-Agent AI system designed to provide personalized investment advice. By orchestrating specialized agents—from profile analysis to fierce debates between opposing viewpoints—it delivers comprehensive, data-driven financial reports tailored to the user's specific risk tolerance and goals.
 
 ## System Architecture
