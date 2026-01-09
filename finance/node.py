@@ -27,20 +27,20 @@ class FinanceNode:
         print(f"⚖️ Performing Mandatory Legal Compliance Check for: {topic}")
         legal_context = ""
         legal_search_success = False
-
+        
         try:
             legal_context = await search_law_documents_rag(f"{topic} financial regulations compliance restrictions")
-
+            
             # 검색 성공 여부 판단
             if legal_context and \
-                    "No related legal documents found" not in legal_context and \
-                    "Legal search failed" not in legal_context and \
-                    "Error:" not in legal_context:
+               "No related legal documents found" not in legal_context and \
+               "Legal search failed" not in legal_context and \
+               "Error:" not in legal_context:
                 legal_search_success = True
                 print(f"✅ Legal search successful: {len(legal_context)} characters retrieved")
             else:
                 print(f"⚠️ Legal search returned no results")
-
+                
         except Exception as e:
             print(f"❌ Legal Search Error: {e}")
             legal_context = f"Legal search error: {str(e)}"
@@ -89,10 +89,10 @@ class FinanceNode:
         try:
             response = await self.llm.ainvoke(messages)
             report_content = response.content
-
+            
             # 6. 법률 검색 결과를 보고서 하단에 추가
             legal_appendix = "\n\n---\n\n## 📋 법률 검색 결과\n\n"
-
+            
             if legal_search_success:
                 legal_appendix += f"✅ **법률 데이터베이스 검색 완료**\n\n"
                 legal_appendix += f"검색어: `{topic} financial regulations compliance restrictions`\n\n"
@@ -108,11 +108,11 @@ class FinanceNode:
                 legal_appendix += "- 또는 검색 중 오류 발생\n\n"
                 legal_appendix += f"**검색 결과:** `{legal_context}`\n\n"
                 legal_appendix += "⚠️ *본 보고서는 법률 검토 없이 작성되었으므로 투자 결정 시 주의가 필요합니다.*"
-
+            
             # 최종 응답에 법률 검색 정보 추가
             final_report = report_content + legal_appendix
             response = AIMessage(content=final_report)
-
+            
         except Exception as e:
             print(f"Finance Report Generation Error: {e}")
             response = AIMessage(content=f"보고서 생성 중 오류가 발생했습니다: {str(e)}")
@@ -136,7 +136,7 @@ class FinanceNode:
 
         for _ in range(2):
             response = await self.llm.ainvoke(messages, tools=FINANCE_TOOLS_SCHEMA)
-
+            
             if not response.tool_calls:
                 return response.content
 
@@ -146,7 +146,7 @@ class FinanceNode:
                 func_name = tool_call["function"]["name"]
                 args_str = tool_call["function"]["arguments"]
                 tool_call_id = tool_call["id"]
-
+                
                 print(f"  Finance Tool: {func_name}({args_str})")
 
                 try:
@@ -160,7 +160,7 @@ class FinanceNode:
                     result = f"Error: {e}"
 
                 messages.append(ToolMessage(content=str(result), tool_call_id=tool_call_id))
-
+        
         final_res = await self.llm.ainvoke(messages)
         return final_res.content
 
@@ -174,7 +174,7 @@ class FinanceNode:
                 "created_at": now
             }
             self.supabase.table("advisory_reports").insert(report_data).execute()
-
+            
             self.supabase.table("user_profile").update({"updated_at": now}).eq("external_user_key", user_id).execute()
             print(f"Report Saved: {topic}")
 

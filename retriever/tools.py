@@ -64,26 +64,29 @@ def search_products_sql(
         return f"DB Error: {str(e)}"
 
 # document search (RAG)
-async def search_documents_rag(query: str) -> str:
+async def search_law_documents_rag(query: str) -> str:
     """
-    Search financial knowledge, terms, reports, etc. from the vector database.
+    Search legal regulations, compliance guidelines, and financial laws.
+    Used to ensure the advice complies with current regulations.
     """
     supabase = get_supabase_client()
     if not supabase: return "Error: DB connection failed."
 
-    # use BGE-M3 embedding model
+    # 임베딩 생성
     vector = await get_embedding(query)
     
     try:
         response = supabase.rpc(
-            "match_documents", 
+            "match_law_documents", 
             {"query_embedding": vector, "match_threshold": 0.4, "match_count": 3}
         ).execute()
         
-        if not response.data: return "No related documents found."
-        return "\n".join([f"[Document: {d.get('title')}]\n{d.get('content')}" for d in response.data])
+        if not response.data: return "No related legal documents found."
+        
+        # 결과 포맷에 [Legal Document] 명시
+        return "\n".join([f"[Legal Document: {d.get('title')}]\n{d.get('content')}" for d in response.data])
     except Exception as e:
-        return f"Document search error: {str(e)}"
+        return f"Legal search error: {str(e)}"
 
 # web search (API)
 def search_web(query: str) -> str:
@@ -154,8 +157,12 @@ RETRIEVER_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
-            "name": "search_documents_rag",
-            "description": "Search generic financial concepts, reports, and knowledge.",
+            "name": "search_law_documents_rag",  # 이름 변경
+            "description": (
+                "Search for financial laws, regulations, and compliance guidelines. "
+                "CRITICAL: You MUST use this tool to verify if the investment advice is legally compliant "
+                "before giving a final answer."
+            ),
             "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
         }
     },
@@ -179,7 +186,7 @@ RETRIEVER_TOOLS_SCHEMA = [
 
 RETRIEVER_FUNC_MAP = {
     "search_products_sql": search_products_sql,
-    "search_documents_rag": search_documents_rag,
+    "search_law_documents_rag": search_law_documents_rag,
     "get_realtime_price": get_realtime_price,
     "search_web": search_web
 }

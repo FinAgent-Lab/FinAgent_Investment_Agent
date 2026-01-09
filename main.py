@@ -1,5 +1,4 @@
 import asyncio
-import os
 import uuid
 from dotenv import load_dotenv
 

@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage
 
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import httpx
+
 load_dotenv()
 
 class SimpleMessage:
@@ -58,9 +61,10 @@ class ChatOpenRouter:
     """
     class that directly calls the OpenRouter API using httpx
     """
-    def __init__(self, model: str = "openai/gpt-4o", temperature: float = 0.0):
+    def __init__(self, model: str = "openai/gpt-4o", temperature: float = 0.0, max_tokens: Optional[int] = None):
         self.model = model
         self.temperature = temperature
+        self.max_tokens = max_tokens
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
@@ -93,6 +97,11 @@ class ChatOpenRouter:
                 formatted.append({"role": "user", "content": str(msg.content)})
         return formatted
 
+    @retry(
+        retry=retry_if_exception_type(httpx.RemoteProtocolError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
     async def ainvoke(
         self, 
         messages: List[Union[BaseMessage, Dict]], 
@@ -112,6 +121,9 @@ class ChatOpenRouter:
             "messages": self._convert_messages(messages),
             "temperature": self.temperature,
         }
+
+        if self.max_tokens:
+            payload["max_tokens"] = self.max_tokens
 
         if tools:
             payload["tools"] = tools

@@ -67,10 +67,14 @@ class ConditionNode:
                 missing_fields.append(field)
         
         if missing_fields:
-            print(f"Profile Incomplete. Missing: {len(missing_fields)} fields. Routing to [UserChat].")
-            # for debugging: print what's missing to be sure
-            print(f"   👉 Missing: {missing_fields}") 
-            return Command(goto="user_chat")
+            print(f"Profile Incomplete. Routing to [UserChat].")
+
+            update_dict = {}
+            if not state.get("original_query"):
+                print(f"   👉 Saving original query: {user_input}")
+                update_dict["original_query"] = user_input
+
+            return Command(update=update_dict, goto="user_chat")
 
         # 3. profile update intent (if already completed and user asks to update)
         if guardrail_result.get("category") == "profile_update":

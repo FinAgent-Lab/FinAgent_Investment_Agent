@@ -10,10 +10,10 @@ from user_chat.models import ExtractedInfo
 
 # IMPORTANT: all required fields to collect
 REQUIRED_FIELDS = [
-    "name_display", "age_range", "income_bracket",
-    "invest_experience_yr", "financial_knowledge_level",
+    "name_display", "age_range", "income_bracket", 
+    "invest_experience_yr", "financial_knowledge_level", 
     "current_holdings_note", "preferred_asset_types",
-    "risk_tolerance_level", "total_investable_amt",
+    "risk_tolerance_level", "total_investable_amt", 
     "goal_type", "goal_description", "preferred_style"
 ]
 
@@ -24,40 +24,40 @@ class UserProfileChatNode:
 
     async def run(self, state: AgentState) -> Command:
         user_id = state["user_id"]
-
+        
         # 1. DB 및 현재 상태에서 프로필 로드
         db_profile = self._fetch_profile_from_db(user_id)
         current_profile = state.get("user_profile") or {}
         if db_profile:
             current_profile.update(db_profile)
-
+            
         # 2. 누락된 필드 확인
         missing_fields = []
         for field in REQUIRED_FIELDS:
             val = current_profile.get(field)
             if val is None or val == "" or val == []:
                 missing_fields.append(field)
-
+        
         is_complete = len(missing_fields) == 0
-
+        
         # 3. [수정됨] 프로필 완성 시 로직 (초기 질문 복원 포함)
         if is_complete:
             print(f"⏩ Profile Fully Completed.")
-
+            
             # 저장해둔 초기 질문(original_query)이 있다면 복원
             original_query = state.get("original_query")
-
+            
             if original_query:
                 print(f"🔄 Restoring original query: {original_query}")
                 # 안내 메시지와 원래 질문을 메시지 기록에 추가
                 # ConditionNode가 이 질문을 보고 즉시 분석을 시작함
                 notice_msg = AIMessage(content="모든 정보가 수집되었습니다. 질문하신 내용에 대해 바로 분석을 시작합니다!")
                 restore_msg = HumanMessage(content=original_query)
-
+                
                 return Command(
                     update={
-                        "user_profile": current_profile,
-                        "messages": [notice_msg, restore_msg],
+                        "user_profile": current_profile, 
+                        "messages": [notice_msg, restore_msg], 
                         "original_query": None  # 사용했으므로 초기화
                     },
                     goto="condition" # 다시 라우터로 이동
@@ -65,7 +65,7 @@ class UserProfileChatNode:
             else:
                 # 초기 질문 없이 설문만 완료한 경우
                 return Command(update={"user_profile": current_profile}, goto="condition")
-
+            
         # 4. system prompt (DB constraint와 일치하도록 수정)
         system_prompt = f"""
         You are a friendly Investment Onboarding Assistant.
@@ -104,14 +104,14 @@ class UserProfileChatNode:
 
         Output JSON matching `ExtractedInfo`. `response_message` is required.
         """
-
+        
         structured_llm = self.llm.with_structured_output(ExtractedInfo)
         # 최근 대화 6턴만 포함하여 컨텍스트 유지
         messages = [SystemMessage(content=system_prompt)] + state["messages"][-6:]
-
+        
         # LLM 호출
         result = await structured_llm.ainvoke(messages)
-
+        
         # 5. DB 저장
         extracted_data = result.model_dump(exclude={"response_message"}, exclude_none=True)
         if extracted_data:
@@ -127,7 +127,7 @@ class UserProfileChatNode:
                 val = current_profile.get(field)
                 if val is None or val == "" or val == []:
                     remaining.append(field)
-
+            
             if remaining:
                 ai_response = await self._generate_question_dynamically(remaining[0], current_profile)
             else:

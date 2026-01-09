@@ -37,3 +37,5 @@ class AgentState(TypedDict):
     # 5. one-time control flag (overwrite)
     guardrail_result: Dict[str, Any]
     intent: str
+
+    original_query: Optional[str]
